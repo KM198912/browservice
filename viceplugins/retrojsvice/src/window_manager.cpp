@@ -142,6 +142,17 @@ void WindowManager::notifyViewChanged(uint64_t window) {
     it->second->notifyViewChanged();
 }
 
+// A title change: like notifyViewChanged, but a window this side has already closed is ignored
+// (the title only refreshes a picture - never worth a panic)
+void WindowManager::notifyTitleChanged(uint64_t window) {
+    REQUIRE_API_THREAD();
+
+    auto it = windows_.find(window);
+    if(it != windows_.end()) {
+        it->second->notifyViewChanged();
+    }
+}
+
 void WindowManager::setCursor(uint64_t window, int cursorSignal) {
     REQUIRE_API_THREAD();
 
@@ -280,6 +291,14 @@ FORWARD_WINDOW_EVENT(
     onWindowNavigateToURI(uint64_t window, string uri),
     onWindowManagerNavigateToURI(window, move(uri))
 )
+
+optional<string> WindowManager::onWindowTitleQuery(uint64_t window) {
+    REQUIRE_API_THREAD();
+    if(closed_ || !eventHandler_ || !windows_.count(window)) {
+        return {};
+    }
+    return eventHandler_->onWindowManagerTitleQuery(window);
+}
 FORWARD_WINDOW_EVENT(
     onWindowUploadFile(
         uint64_t window, string name, shared_ptr<FileUpload> file

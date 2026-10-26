@@ -460,6 +460,37 @@ void Window::onImageCompressorRenderGUI(
     }
 }
 
+// The page title for native clients: X-Browservice-Title on every image response, percent-encoded
+// UTF-8 (a header value must stay printable ASCII; the title comes from untrusted pages), at most
+// 512 bytes before encoding. Never for a closed window: the program asserts the window is open.
+vector<pair<string, string>> Window::onImageCompressorResponseHeaders() {
+    REQUIRE_API_THREAD();
+
+    if(closed_ || !eventHandler_) {
+        return {};
+    }
+    optional<string> title = eventHandler_->onWindowTitleQuery(handle_);
+    if(!title.has_value()) {
+        return {};
+    }
+    string raw = title->substr(0, 512);
+    string enc;
+    const char* hex = "0123456789ABCDEF";
+    for(unsigned char c : raw) {
+        if(
+            (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
+            c == '-' || c == '_' || c == '.' || c == '~'
+        ) {
+            enc.push_back((char)c);
+        } else {
+            enc.push_back('%');
+            enc.push_back(hex[c >> 4]);
+            enc.push_back(hex[c & 15]);
+        }
+    }
+    return {{"X-Browservice-Title", enc}};
+}
+
 void Window::afterConstruct_(shared_ptr<Window> self) {
     imageCompressor_ = ImageCompressor::create(
         self, milliseconds(2000), initialQuality_

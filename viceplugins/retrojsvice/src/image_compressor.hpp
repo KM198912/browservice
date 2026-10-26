@@ -22,6 +22,11 @@ public:
     virtual void onImageCompressorRenderGUI(
         vector<uint8_t>& data, size_t width, size_t height
     ) = 0;
+
+    // Extra HTTP headers for the next image response (e.g. the page title)
+    virtual vector<pair<string, string>> onImageCompressorResponseHeaders() {
+        return {};
+    }
 };
 
 class DelayedTaskTag;
@@ -85,7 +90,7 @@ public:
 private:
     void afterConstruct_(shared_ptr<ImageCompressor> self);
 
-    typedef function<void(shared_ptr<HTTPRequest>)> CompressedImage;
+    typedef function<void(shared_ptr<HTTPRequest>, vector<pair<string, string>>)> CompressedImage;
 
     tuple<vector<uint8_t>, size_t, size_t> fetchImage_(MCE);
 

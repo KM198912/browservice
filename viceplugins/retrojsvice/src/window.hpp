@@ -41,6 +41,9 @@ public:
     virtual void onWindowNavigate(uint64_t window, int direction) = 0;
     virtual void onWindowNavigateToURI(uint64_t window, string uri) = 0;
 
+    // The window's current title, if the program provides titles
+    virtual optional<string> onWindowTitleQuery(uint64_t window) = 0;
+
     virtual void onWindowUploadFile(
         uint64_t window, string name, shared_ptr<FileUpload> file
     ) = 0;
@@ -101,6 +104,7 @@ public:
     virtual void onImageCompressorRenderGUI(
         vector<uint8_t>& data, size_t width, size_t height
     ) override;
+    virtual vector<pair<string, string>> onImageCompressorResponseHeaders() override;
 
 private:
     void afterConstruct_(shared_ptr<Window> self);

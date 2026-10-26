@@ -9,7 +9,7 @@ namespace retrojsvice {
 
 namespace {
 
-void serveWhiteJPEGPixel(shared_ptr<HTTPRequest> request) {
+void serveWhiteJPEGPixel(shared_ptr<HTTPRequest> request, vector<pair<string, string>> headers) {
     REQUIRE_API_THREAD();
 
     // 1x1 white JPEG
@@ -37,11 +37,13 @@ void serveWhiteJPEGPixel(shared_ptr<HTTPRequest> request) {
         contentLength,
         [data{move(data)}](ostream& out) {
             out.write((const char*)data.data(), data.size());
-        }
+        },
+        true,
+        move(headers)
     );
 }
 
-function<void(shared_ptr<HTTPRequest>)> compressPNG_(
+function<void(shared_ptr<HTTPRequest>, vector<pair<string, string>>)> compressPNG_(
     vector<uint8_t> imageData,
     size_t imageWidth,
     size_t imageHeight,
@@ -65,7 +67,7 @@ function<void(shared_ptr<HTTPRequest>)> compressPNG_(
         length += chunk.size();
     }
 
-    return [png, length](shared_ptr<HTTPRequest> request) {
+    return [png, length](shared_ptr<HTTPRequest> request, vector<pair<string, string>> headers) {
         REQUIRE_API_THREAD();
 
         request->sendResponse(
@@ -76,12 +78,14 @@ function<void(shared_ptr<HTTPRequest>)> compressPNG_(
                 for(const vector<uint8_t>& chunk : *png) {
                     out.write((const char*)chunk.data(), chunk.size());
                 }
-            }
+            },
+            true,
+            move(headers)
         );
     };
 }
 
-function<void(shared_ptr<HTTPRequest>)> compressJPEG_(
+function<void(shared_ptr<HTTPRequest>, vector<pair<string, string>>)> compressJPEG_(
     vector<uint8_t> imageData,
     size_t imageWidth,
     size_t imageHeight,
@@ -98,7 +102,7 @@ function<void(shared_ptr<HTTPRequest>)> compressJPEG_(
         imageWidth,
         quality
     ));
-    return [jpeg](shared_ptr<HTTPRequest> request) {
+    return [jpeg](shared_ptr<HTTPRequest> request, vector<pair<string, string>> headers) {
         REQUIRE_API_THREAD();
 
         request->sendResponse(
@@ -107,7 +111,9 @@ function<void(shared_ptr<HTTPRequest>)> compressJPEG_(
             jpeg->length,
             [jpeg](ostream& out) {
                 out.write((const char*)jpeg->data.get(), jpeg->length);
-            }
+            },
+            true,
+            move(headers)
         );
     };
 }
@@ -184,7 +190,11 @@ void ImageCompressor::sendCompressedImageNow(MCE,
 
     flush(mce);
 
-    compressedImage_(httpRequest);
+    vector<pair<string, string>> headers;
+    if(shared_ptr<ImageCompressorEventHandler> eventHandler = eventHandler_.lock()) {
+        headers = eventHandler->onImageCompressorResponseHeaders();
+    }
+    compressedImage_(httpRequest, move(headers));
 
     compressedImageUpdated_ = false;
     pump_(mce);

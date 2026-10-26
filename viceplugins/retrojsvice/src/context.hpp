@@ -39,6 +39,8 @@ public:
 
     // Public API functions:
     void URINavigation_enable(VicePluginAPI_URINavigation_Callbacks callbacks);
+    void WindowTitle_enable(VicePluginAPI_WindowTitle_Callbacks callbacks);
+    void WindowTitle_notifyWindowTitleChanged(uint64_t window);
     int PluginNavigationControlSupportQuery_query();
 
     void start(
@@ -129,6 +131,7 @@ public:
     virtual void onWindowManagerNavigate(
         uint64_t window, int direction
     ) override;
+    virtual optional<string> onWindowManagerTitleQuery(uint64_t window) override;
     virtual void onWindowManagerNavigateToURI(
         uint64_t window, string uri
     ) override;
@@ -162,6 +165,7 @@ private:
     void* callbackData_;
 
     optional<VicePluginAPI_URINavigation_Callbacks> uriNavigationCallbacks_;
+    optional<VicePluginAPI_WindowTitle_Callbacks> windowTitleCallbacks_;
 
     shared_ptr<TaskQueue> taskQueue_;
     shared_ptr<HTTPServer> httpServer_;

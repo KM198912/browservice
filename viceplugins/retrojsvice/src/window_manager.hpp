@@ -45,6 +45,9 @@ public:
     virtual void onWindowManagerNavigate(uint64_t window, int direction) = 0;
     virtual void onWindowManagerNavigateToURI(uint64_t window, string uri) = 0;
 
+    // The window's current title, if the program provides titles
+    virtual optional<string> onWindowManagerTitleQuery(uint64_t window) = 0;
+
     virtual void onWindowManagerUploadFile(
         uint64_t window, string name, shared_ptr<FileUpload> file
     ) = 0;
@@ -86,6 +89,7 @@ public:
     );
     void closeWindow(uint64_t window);
     void notifyViewChanged(uint64_t window);
+    void notifyTitleChanged(uint64_t window);
 
     void setCursor(uint64_t window, int cursorSignal);
 
@@ -132,6 +136,7 @@ public:
     virtual void onWindowLoseFocus(uint64_t window) override;
     virtual void onWindowNavigate(uint64_t window, int direction) override;
     virtual void onWindowNavigateToURI(uint64_t window, string uri) override;
+    virtual optional<string> onWindowTitleQuery(uint64_t window) override;
     virtual void onWindowUploadFile(
         uint64_t window, string name, shared_ptr<FileUpload> file
     ) override;

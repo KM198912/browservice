@@ -330,6 +330,24 @@ void Context::URINavigation_enable(VicePluginAPI_URINavigation_Callbacks callbac
     uriNavigationCallbacks_ = callbacks;
 }
 
+void Context::WindowTitle_enable(VicePluginAPI_WindowTitle_Callbacks callbacks) {
+    APILock apiLock(this);
+
+    REQUIRE(state_ == Pending);
+
+    REQUIRE(!windowTitleCallbacks_.has_value());
+    windowTitleCallbacks_ = callbacks;
+}
+
+// A new title: wake the window's held image request, so the client gets it (in the
+// X-Browservice-Title header) without waiting for the page to change
+void Context::WindowTitle_notifyWindowTitleChanged(uint64_t window) {
+    RunningAPILock apiLock(this);
+    REQUIRE(!threadRunningPumpEvents);
+
+    windowManager_->notifyTitleChanged(window);
+}
+
 int Context::PluginNavigationControlSupportQuery_query() {
     APILock apiLock(this);
     REQUIRE(!threadRunningPumpEvents);
@@ -843,6 +861,22 @@ FORWARD_WINDOW_EVENT(
     onWindowManagerNavigate(uint64_t window, int direction),
     navigate, (callbackData_, window, direction)
 )
+
+// The program's title for the window (WindowTitle extension), empty if it isn't enabled. Only
+// asked from inside pumpEvents, like every other program callback; elsewhere: no title
+optional<string> Context::onWindowManagerTitleQuery(uint64_t window) {
+    if(!threadRunningPumpEvents || state_ != Running || !window || !windowTitleCallbacks_) {
+        return {};
+    }
+    REQUIRE(windowTitleCallbacks_->getWindowTitle != nullptr);
+    char* title = windowTitleCallbacks_->getWindowTitle(callbackData_, window);
+    if(title == nullptr) {
+        return {};
+    }
+    string ret = title;
+    free(title);
+    return ret;
+}
 
 void Context::onWindowManagerNavigateToURI(uint64_t window, string uri) {
     REQUIRE(threadRunningPumpEvents);
