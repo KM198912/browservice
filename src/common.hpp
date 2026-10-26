@@ -11,6 +11,7 @@
 #include <chrono>
 #include <climits>
 #include <codecvt>
+#include <cstdint>
 #include <cstdlib>
 #include <exception>
 #include <fstream>

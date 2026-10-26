@@ -10,6 +10,7 @@
 #include <chrono>
 #include <codecvt>
 #include <condition_variable>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <exception>
